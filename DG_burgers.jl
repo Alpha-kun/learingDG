@@ -4,7 +4,7 @@ using Plots
 
 #Domain: [-1,1]
 
-order=4
+order=2
 N=16
 h=1/N #half of element size
 
@@ -44,12 +44,39 @@ end
 
 #initial condition
 function ψ(x)
-    return sin.(pi*x)
+    return -sin.(pi*x)
 end
 
-#upwind flux for advection with c>0
+function f(x)
+    return x.^2/2
+end
+
+#upwind flux for invicid burgers
+
 function fs(u⁻,u⁺)
-    return (u⁻<u⁺ ? u⁺ : u⁻)^2/2
+
+    #if ((u⁺+u⁻)/2) > 0
+    #    return u⁻^2/2
+    #else
+    #    return u⁺^2/2
+    #end
+
+    return 0.5*(f(u⁻)+f(u⁺))-max(abs(u⁻),abs(u⁺))*(u⁺-u⁻)
+
+    #if (u⁻>0) & (u⁺>0)
+    #    return u⁻^2/2
+    #elseif (u⁻<0) & (u⁺<0)
+    #    return u⁺^2/2
+    #else
+    #    return (abs(u⁻)<=abs(u⁺) ? u⁺^2/2 : u⁻^2/2)
+    #end
+
+    #if (f(u⁺)-f(u⁻)/(u⁺-u⁻)) > 0
+    #    return u⁻^2/2
+    #else
+    #    return u⁺^2/2
+    #end
+
 end
 
 function flux_term(a)
@@ -64,10 +91,6 @@ function flux_term(a)
     return f
 end
 
-function f(x)
-    return x.^2/2
-end
-
 x=zeros(N,order)
 a=zeros(N,order)
 for i in 1:N
@@ -76,24 +99,24 @@ for i in 1:N
 end
 
 
-
 t=0
-T=2
-dt=0.001
+T=1.5
+dt=0.005
 
-while t<T
+anime = @animate for i in 1:500
     k1=M\(K*f(a)'-flux_term(a)')
     k2=M\(K*(f(a)'+0.5dt*k1)-flux_term(a+0.5dt*k1')')
     k3=M\(K*(f(a)'+0.5dt*k2)-flux_term(a+0.5dt*k2')')
     k4=M\(K*(f(a)'+dt*k3)-flux_term(a+dt*k3')')
     a=a+dt*(k1'+2k2'+2k3'+k4')/6
-    plot(x',a',legend=false)
+    plot(x',a',ylims=(-1.6,1.6),legend=false)
     p=scatter!(x',a',legend=false)
     display(p)
-    sleep(0.2)
+    #sleep(0.1)
     t+=dt
 end
 
+gif(anime, "D:\\side_projects\\DG\\DG_burgers_discontinuous_2.gif", fps = 30)
 #plot(vec(x'),vec(a'))
 
 plot(x',a',legend=false)

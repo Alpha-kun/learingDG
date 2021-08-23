@@ -4,8 +4,8 @@ using Plots
 
 #Domain: [-1,1]
 
-order=4
-N=16
+order=6
+N=8
 h=1/N #half of element size
 
 #create quadrature points
@@ -44,7 +44,7 @@ end
 
 #initial condition
 function ψ(x)
-    return ((0 .< x) .& (x .< 0.5))*1
+    return ((-0.25 .< x) .& (x .< 0.25)).*(0.25 .- abs.(x)) #sin.(pi*x)
 end
 
 #upwind flux for advection with c>0
@@ -82,9 +82,9 @@ anime = @animate for i in 1:200
     k3=M\(K*(a'+0.5dt*k2)-flux_term(a+0.5dt*k2')')
     k4=M\(K*(a'+dt*k3)-flux_term(a+dt*k3')')
     a=a+dt*(k1'+2k2'+2k3'+k4')/6
-    plot(x',a',ylims=(-0.1,1.2),legend=false)
+    plot(x',a',ylims=(-0.1,0.4),legend=false)
     p=scatter!(x',a',legend=false)
-    #display(p)
+    display(p)
     #sleep(0.1)
     t+=dt
 end
