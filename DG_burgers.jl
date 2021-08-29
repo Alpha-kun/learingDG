@@ -5,7 +5,7 @@ using Plots
 #Domain: [-1,1]
 
 order=4
-N=10
+N=32
 h=1/N #half of element size
 
 #create quadrature points
@@ -38,16 +38,6 @@ for i in 1:order
     end
 end
 
-K
-v1=[1;2;3;4]
-v2=[-4;-3;-2;-1]
-K*v1
-
-
-
-
-
-K*v2
 #########################################################
 ################ problem specific set up ################
 #########################################################
@@ -70,7 +60,7 @@ function fs(u⁻,u⁺)
     #    return u⁺^2/2
     #end
 
-    return 0.5*(f(u⁻)+f(u⁺))-max(abs(u⁻),abs(u⁺))*(u⁺-u⁻)
+    return 0.5*(f(u⁻)+f(u⁺))-0.5*max(abs(u⁻),abs(u⁺))*(u⁺-u⁻)
 
     #if (u⁻>0) & (u⁺>0)
     #    return u⁻^2/2
@@ -94,7 +84,7 @@ function flux_term(a)
         a⁺ = (i==N ? a[1,:] : a[i+1, :])
         f⁻=fs(dot(a⁻, Lᵣ), dot(a[i,:], Lₗ))*Lₗ
         f⁺=fs(dot(a[i,:], Lᵣ), dot(a⁺, Lₗ))*Lᵣ
-        f[i,:]=f⁺-f⁻ ;
+        f[i,:]=f⁺-f⁻
     end
     return f
 end
@@ -111,64 +101,16 @@ t=0
 T=1.5
 dt=0.01
 
-k1=M\(K*f(a)'-flux_term(a)')
-for i in 1:10
-    print("\n ",k1[1,i])
-    print(" ",k1[2,i])
-    print(" ",k1[3,i])
-    print(" ",k1[4,i])
-end
-
-scatter(x',a',legend=false)
-plot!(x',a',ylims=(-2.6,2.6),legend=false)
-plot!(x',k1,ylims=(-2.6,2.6),legend=false)
-plot!(x',flux_term(a)',ylims=(-2.6,2.6),legend=false)
-
-
-k2=M\(K*(f(a)'+0.5dt*k1)-flux_term(a+0.5dt*k1')')
-scatter(x',a',legend=false)
-
-plot!(x',a',ylims=(-2.6,2.6),legend=false)
-plot!(x',k2,ylims=(-2.6,2.6),legend=false)
-
-plot(x',K*(f(a)'+0.5dt*k1),ylims=(-0.05,0.05),legend=false)
-A=K*(f(a)'+0.5dt*k1)
-A=A'
-for i in 1:10
-    print("\n ",A[i,1])
-    print(" ",A[i,2])
-    print(" ",A[i,3])
-    print(" ",A[i,4])
-end
-plot(x',flux_term(a+0.5dt*k1')',legend=false)
-plot(x',K*(f(a)'+0.5dt*k1)-flux_term(a+0.5dt*k1')',legend=false)
-
-k3=M\(K*(f(a)'+0.5dt*k2)-flux_term(a+0.5dt*k2')')
-k4=M\(K*(f(a)'+dt*k3)-flux_term(a+dt*k3')')
-a=a+dt*(k1'+2k2'+2k3'+k4')/6
-
-plot(x',k2,ylims=(-2.6,2.6),legend=false)
-plot(x',k3,ylims=(-2.6,2.6),legend=false)
-plot(x',k4,ylims=(-2.6,2.6),legend=false)
-plot!(x',a',ylims=(-2.6,2.6),legend=false)
-p=scatter!(x',a',legend=false)
-display(p)
-
-
-anime = @animate for i in 1:100
+anime = @animate for i in 1:500
     k1=M\(K*f(a)'-flux_term(a)')
     k2=M\(K*(f(a+0.5dt*k1')')-flux_term(a+0.5dt*k1')')
     k3=M\(K*(f(a+0.5dt*k2')')-flux_term(a+0.5dt*k2')')
     k4=M\(K*(f(a+dt*k3')')-flux_term(a+dt*k3')')
     a=a+dt*(k1'+2k2'+2k3'+k4')/6
-    plot(x',k1,ylims=(-2.6,2.6),legend=false)
-    plot(x',k2,ylims=(-2.6,2.6),legend=false)
-    plot(x',k1,ylims=(-2.6,2.6),legend=false)
-    plot(x',k1,ylims=(-2.6,2.6),legend=false)
-    plot!(x',a',ylims=(-2.6,2.6),legend=false)
+    plot(x',a',ylims=(-2.6,2.6),legend=false)
     p=scatter!(x',a',legend=false)
     display(p)
-    sleep(0.5)
+    #sleep(0.1)
     t+=dt
 end
 
