@@ -14,7 +14,7 @@ nodes, weights = gausslobatto(order)
 #compute mass matrix
 M=h*Diagonal(weights)
 
-#compute stiffness matrix
+#compute derivative matrix
 D=zeros(order,order)
 for i in 1:order
     denom = prod(nodes[i] .- nodes[filter(x -> x != i, 1:order)])
@@ -36,7 +36,10 @@ D=(1/h)*D'
 
 #initial condition
 function ψ(x)
-    return -sin.(pi*x).+0.2
+    return -sin.(pi*x).+1.0
+    #return abs.(x)
+    #return ((-1.0 .< x) .& (x .< 0.0)).*(-1 .- x) + ((0.0 .<= x) .& (x .< 1.0)).*(1 .-x)
+    #return ((-1.0 .< x) .& (x .< -0.25)).*(1) + ((0.25 .<= x) .& (x .< 1.0)).*(-1)
 end
 
 function f(x)
@@ -44,7 +47,6 @@ function f(x)
 end
 
 #Lax-Friedrich flux for invicid burgers
-
 function fs(u⁻,u⁺)
     #return 0.5*(f(u⁻)+f(u⁺))-(1/12)*(u⁺-u⁻)^2
     return 0.5*(f(u⁻)+f(u⁺))-0.5*max(abs(u⁺),abs(u⁻))*(u⁺-u⁻)
@@ -63,13 +65,12 @@ function flux_term(U)
     return f
 end
 
-x=zeros(order,N)
-u=zeros(order,N)
-for i in 1:N
-    x[:,i] = (-1+(2*i-1)*h) .+ h*nodes
-    u[:,i] = ψ(x[:,i])
-end
+#set up nodes
+x=reduce(hcat, [(-1+(2*i-1)*h) .+ h*nodes for i in 1:N])
+#set up initial nodal values
+u=ψ(x)
 
+#Gassner's split operator formulation
 α=2/3
 function F(u)
     volume_1 = α*(M*D)'*f(u)
@@ -80,9 +81,9 @@ end
 
 t=0
 T=1.5
-dt=0.008
+dt=0.005
 
-anime = @animate for i in 1:700
+anime = @animate for i in 1:1000
     k1=F(u)
     k2=F(u+0.5dt*k1)
     k3=F(u+0.5dt*k2)
@@ -91,11 +92,11 @@ anime = @animate for i in 1:700
     plot(x,u,ylims=(-2.6,2.6),legend=false)
     p=scatter!(x,u,legend=false)
     display(p)
-    sleep(0.5)
+    #sleep(0.5)
     t+=dt
 end
 
-gif(anime, "D:\\side_projects\\DG\\DG_burgers_ES_LAX_flux.gif", fps = 30)
+gif(anime, "D:\\side_projects\\DG\\DG_burgers_2antishock.gif", fps = 30)
 #plot(vec(x'),vec(a'))
 
 plot(x,u,legend=false)
