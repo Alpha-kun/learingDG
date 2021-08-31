@@ -4,21 +4,14 @@ using Plots
 
 #Domain: [-1,1]
 
-order=2
+order=3
 N=32
 h=1/N #half of element size
 
-#create quadrature points
-nodes, weights = gausslegendre(order)
 
-#compute interpolation vector
-Lₗ=zeros(order)
-Lᵣ=zeros(order)
-for i in 1:order
-    denom = prod(nodes[i] .- nodes[filter(x -> x != i, 1:order)])
-    Lₗ[i]=prod(-1 .- nodes[filter(x -> x != i, 1:order)]) / denom
-    Lᵣ[i]=prod(1 .- nodes[filter(x -> x != i, 1:order)]) / denom
-end
+#create quadrature points
+nodes, weights = gausslobatto(order)
+
 
 #compute mass matrix
 M=h*Diagonal(weights)
@@ -44,24 +37,26 @@ end
 
 #initial condition
 function ψ(x)
-    return -sin.(pi*x)
+    return 1 + (x.* 0)
 end
 
 function f(x)
     return x.^2/2
+    #return x
 end
 
 #upwind flux for invicid burgers
 
 function fs(u⁻,u⁺)
 
+    #return u⁻
     #if ((u⁺+u⁻)/2) > 0
     #    return u⁻^2/2
     #else
     #    return u⁺^2/2
     #end
 
-    return 0.5*(f(u⁻)+f(u⁺))-max(abs(u⁻),abs(u⁺))*(u⁺-u⁻)
+    return 0.5*(f(u⁻)+f(u⁺))-(1/2)*max(u⁺,u⁻)*(u⁺-u⁻)
 
     #if (u⁻>0) & (u⁺>0)
     #    return u⁻^2/2
@@ -84,8 +79,12 @@ function flux_term(a)
     for i in 1:N
         a⁻ = (i==1 ? a[N,:] : a[i-1, :])
         a⁺ = (i==N ? a[1,:] : a[i+1, :])
-        f⁻=fs(dot(a⁻, Lᵣ), dot(a[i,:], Lₗ))*Lₗ
-        f⁺=fs(dot(a[i,:], Lᵣ), dot(a⁺, Lₗ))*Lᵣ
+        Lₗ=zeros(order)
+        Lᵣ=zeros(order)
+        Lₗ[1]=1
+        Lᵣ[order]=1
+        f⁻=fs(a⁻[order], a[i,1])*Lₗ
+        f⁺=fs(a[i,order], a⁺[1])*Lᵣ
         f[i,:]=f⁺-f⁻
     end
     return f
@@ -96,12 +95,13 @@ a=zeros(N,order)
 for i in 1:N
     x[i,:] = (-1+(2*i-1)*h) .+ h*nodes
     a[i,:] = ψ(x[i,:])
+    #a[i,:] = ones(order)
 end
 
 
 t=0
 T=1.5
-dt=0.005
+dt=0.001
 
 anime = @animate for i in 1:500
     k1=M\(K*f(a)'-flux_term(a)')
@@ -112,7 +112,7 @@ anime = @animate for i in 1:500
     plot(x',a',ylims=(-1.6,1.6),legend=false)
     p=scatter!(x',a',legend=false)
     display(p)
-    #sleep(0.1)
+    sleep(0.1)
     t+=dt
 end
 
